@@ -31,6 +31,7 @@ import SkipUI
 /// Define text content.
 struct TextSpec : Equatable, @unchecked Sendable {
     var verbatim: String?
+    var markdown: String?
     var key: LocalizedStringKey?
     var resource: AndroidLocalizedStringResource?
     var tableName: String?
@@ -53,6 +54,8 @@ extension Text : SkipUIBridging {
 
         if let verbatim = spec.verbatim {
             return SkipUI.Text(verbatim: verbatim)
+        } else if let markdown = spec.markdown {
+            return SkipUI.Text(bridgedMarkdown: markdown)
         } else if let key = spec.key {
             let values = key.interpolation.values.isEmpty ? nil : key.interpolation.values
             return SkipUI.Text(keyPattern: key.interpolation.pattern, keyValues: values, tableName: spec.tableName, localeIdentifier: nil, bridgedBundle: spec.bundle)
@@ -222,9 +225,13 @@ extension Text {
 }
 
 extension Text {
-    @available(*, unavailable)
     public init(_ attributedContent: AttributedString) {
-        fatalError()
+        // SkipUI renders attributed content as markdown; see markdownRepresentation.
+        if let markdown = attributedContent.markdownRepresentation {
+            self.init(spec: TextSpec(markdown: markdown))
+        } else {
+            self.init(spec: TextSpec(verbatim: String(attributedContent.characters)))
+        }
     }
 }
 
