@@ -377,9 +377,16 @@ extension View {
         }
     }
 
-    @available(*, unavailable)
     /* @inlinable */ nonisolated public func listRowInsets(_ insets: EdgeInsets?) -> some View {
-        stubView()
+        return ModifierView(target: self) {
+            $0.Java_viewOrEmpty.listRowInsets(
+                bridgedTop: Double(insets?.top ?? 0.0),
+                bridgedLeading: Double(insets?.leading ?? 0.0),
+                bridgedBottom: Double(insets?.bottom ?? 0.0),
+                bridgedTrailing: Double(insets?.trailing ?? 0.0),
+                hasInsets: insets != nil
+            )
+        }
     }
 
     @available(*, unavailable)
