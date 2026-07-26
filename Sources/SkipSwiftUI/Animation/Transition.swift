@@ -193,9 +193,10 @@ extension AnyTransition {
 }
 
 extension AnyTransition {
-    @available(*, unavailable)
+    /// Pass-through: the transition itself is honored, its animation override is not.
+    /// Unavailable would break shared sources for a detail Compose can't express.
     public func animation(_ animation: Animation?) -> AnyTransition {
-        fatalError()
+        return self
     }
 }
 

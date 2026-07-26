@@ -45,9 +45,11 @@ public struct GlassEffectTransition : Sendable {
 }
 
 extension View {
-    @available(*, unavailable)
+    /// Compose has no Liquid Glass, so this is a pass-through rather than unavailable:
+    /// `#available(iOS 26, *)` is vacuously true off-Apple, so shared SwiftUI sources
+    /// take their glass branch on Android and would otherwise not compile at all.
     nonisolated public func glassEffect(_ glass: Glass = .regular, in shape: some Shape = .capsule, isEnabled: Bool = true) -> some View {
-        stubView()
+        return self
     }
 
     @MainActor @preconcurrency public func glassEffectTransition(_ transition: GlassEffectTransition, isEnabled: Bool = true) -> some View {
