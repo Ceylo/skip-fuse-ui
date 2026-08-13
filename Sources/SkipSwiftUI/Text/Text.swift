@@ -32,10 +32,22 @@ import SkipUI
 struct TextSpec : Equatable, @unchecked Sendable {
     var verbatim: String?
     var richText: String?
+    var inlineViews: [any View]?
     var key: LocalizedStringKey?
     var resource: AndroidLocalizedStringResource?
     var tableName: String?
     var bundle: Bundle?
+
+    // Hand-written because `any View` isn't `Equatable`. `richText` already encodes the
+    // inline views' count and sizes, so it changes whenever they meaningfully do.
+    static func == (lhs: TextSpec, rhs: TextSpec) -> Bool {
+        return lhs.verbatim == rhs.verbatim
+            && lhs.richText == rhs.richText
+            && lhs.key == rhs.key
+            && lhs.resource == rhs.resource
+            && lhs.tableName == rhs.tableName
+            && lhs.bundle == rhs.bundle
+    }
 }
 
 extension Text : View {
@@ -55,7 +67,7 @@ extension Text : SkipUIBridging {
         if let verbatim = spec.verbatim {
             return SkipUI.Text(verbatim: verbatim)
         } else if let richText = spec.richText {
-            return SkipUI.Text(bridgedRichText: richText)
+            return SkipUI.Text(bridgedRichText: richText, bridgedInlineViews: (spec.inlineViews ?? []).map { $0.Java_viewOrEmpty })
         } else if let key = spec.key {
             let values = key.interpolation.values.isEmpty ? nil : key.interpolation.values
             return SkipUI.Text(keyPattern: key.interpolation.pattern, keyValues: values, tableName: spec.tableName, localeIdentifier: nil, bridgedBundle: spec.bundle)
@@ -226,12 +238,38 @@ extension Text {
 
 extension Text {
     public init(_ attributedContent: AttributedString) {
+        self.init(attributedContent, inlineViews: [])
+    }
+
+    /// Splices views into the text where it carries the object-replacement character,
+    /// in order.
+    ///
+    /// SwiftUI spells this as `Text(Image(…)) + Text(…)` concatenation, which SkipSwiftUI
+    /// cannot offer — `Text + Text` is unavailable — so the attachment character does the
+    /// marking instead, the same one `NSAttributedString` uses.
+    public init(_ attributedContent: AttributedString, inlineViews: [TextInlineView]) {
         // See richTextRepresentation; nil means the string is unstyled.
-        if let richText = attributedContent.richTextRepresentation {
-            self.init(spec: TextSpec(richText: richText))
+        if let richText = attributedContent.richTextRepresentation(inlineViews: inlineViews) {
+            self.init(spec: TextSpec(richText: richText, inlineViews: inlineViews.map { $0.view }))
         } else {
             self.init(spec: TextSpec(verbatim: String(attributedContent.characters)))
         }
+    }
+}
+
+/// A view to splice into a `Text` at one of its attachment characters.
+///
+/// The size is explicit because Compose reserves the placeholder's space before it ever
+/// composes the view, so it cannot measure it first.
+public struct TextInlineView {
+    let view: any View
+    let width: Double
+    let height: Double
+
+    public init(_ view: any View, width: Double, height: Double) {
+        self.view = view
+        self.width = width
+        self.height = height
     }
 }
 

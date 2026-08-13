@@ -15,12 +15,16 @@ extension AttributedString {
     private static let recordSeparator = "\u{001E}"
     private static let fieldSeparator = "\u{001F}"
 
+    /// The object-replacement character, which marks where an inline view goes — the
+    /// same one `NSAttributedString` uses for an attachment.
+    static let attachmentCharacter: Character = "\u{FFFC}"
+
     /// The receiver as a rich-text payload, or `nil` if it carries no attribute the
     /// bridge can render.
     ///
     /// `nil` matters: a string with no styling should reach Compose as a plain
     /// `Text(verbatim:)` rather than paying for the encode/decode round trip.
-    var richTextRepresentation: String? {
+    func richTextRepresentation(inlineViews: [TextInlineView] = []) -> String? {
         #if canImport(Darwin)
         // Only the Android build renders through SkipUI; the Darwin compile of this
         // module is a typecheck of the bridge. There `run.font` is SwiftUI's own opaque
@@ -29,10 +33,23 @@ extension AttributedString {
         #else
         var records: [String] = []
         var isStyled = false
+        var inlineViewIndex = 0
 
         for run in runs {
             let text = String(self[run.range].characters)
             guard !text.isEmpty else { continue }
+
+            // Attachment runs consume the inline views in order. Any beyond the ones
+            // supplied are dropped rather than left to draw as a tofu box.
+            var inlineView: TextInlineView?
+            var inlineIndex: Int?
+            if text.count == 1, text.first == Self.attachmentCharacter {
+                guard inlineViewIndex < inlineViews.count else { continue }
+                inlineView = inlineViews[inlineViewIndex]
+                inlineIndex = inlineViewIndex
+                inlineViewIndex += 1
+                isStyled = true
+            }
 
             let font = run.font?.spec
             var weight = font?.weight
@@ -78,6 +95,9 @@ extension AttributedString {
                 decorations,
                 baseline,
                 run.link.map { Self.sanitized($0.absoluteString) } ?? "",
+                inlineIndex.map { String($0) } ?? "",
+                inlineView.map { String($0.width) } ?? "",
+                inlineView.map { String($0.height) } ?? "",
             ]
             if fields.dropFirst().contains(where: { !$0.isEmpty }) {
                 isStyled = true
