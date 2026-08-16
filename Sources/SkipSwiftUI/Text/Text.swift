@@ -300,8 +300,9 @@ extension Text {
     /// in order.
     ///
     /// SwiftUI spells this as `Text(Image(…)) + Text(…)` concatenation, which SkipSwiftUI
-    /// cannot offer — `Text + Text` is unavailable — so the attachment character does the
-    /// marking instead, the same one `NSAttributedString` uses.
+    /// cannot offer — it is `Text(Image:)` that is unavailable, not the concatenation —
+    /// so the attachment character does the marking instead, the same one
+    /// `NSAttributedString` uses.
     public init(_ attributedContent: AttributedString, inlineViews: [TextInlineView]) {
         // See richTextRepresentation; nil means the string is unstyled.
         if let richText = attributedContent.richTextRepresentation(inlineViews: inlineViews) {
