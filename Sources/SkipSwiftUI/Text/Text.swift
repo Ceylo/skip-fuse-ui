@@ -32,7 +32,11 @@ import SkipUI
 struct TextSpec : Equatable, @unchecked Sendable {
     var verbatim: String?
     var richText: String?
+    /// Markup handed to Compose's own parser; see `Text(html:inlineViews:onLinkTap:)`.
+    var html: String?
+    var htmlLinkAction: (@Sendable (URL) -> Void)?
     var inlineViews: [any View]?
+    var inlineSizes: [(width: Double, height: Double)]?
     var key: LocalizedStringKey?
     var resource: AndroidLocalizedStringResource?
     var tableName: String?
@@ -43,6 +47,7 @@ struct TextSpec : Equatable, @unchecked Sendable {
     static func == (lhs: TextSpec, rhs: TextSpec) -> Bool {
         return lhs.verbatim == rhs.verbatim
             && lhs.richText == rhs.richText
+            && lhs.html == rhs.html
             && lhs.key == rhs.key
             && lhs.resource == rhs.resource
             && lhs.tableName == rhs.tableName
@@ -66,6 +71,23 @@ extension Text : SkipUIBridging {
 
         if let verbatim = spec.verbatim {
             return SkipUI.Text(verbatim: verbatim)
+        } else if let html = spec.html {
+            let sizes = spec.inlineSizes ?? []
+            var linkAction: ((String) -> Void)?
+            if let action = spec.htmlLinkAction {
+                linkAction = { urlString in
+                    if let url = URL(string: urlString) {
+                        action(url)
+                    }
+                }
+            }
+            return SkipUI.Text(
+                bridgedHTML: html,
+                bridgedInlineViews: (spec.inlineViews ?? []).map { $0.Java_viewOrEmpty },
+                bridgedInlineWidths: sizes.map { $0.width },
+                bridgedInlineHeights: sizes.map { $0.height },
+                bridgedLinkAction: linkAction
+            )
         } else if let richText = spec.richText {
             return SkipUI.Text(bridgedRichText: richText, bridgedInlineViews: (spec.inlineViews ?? []).map { $0.Java_viewOrEmpty })
         } else if let key = spec.key {
@@ -237,6 +259,24 @@ extension Text {
 }
 
 extension Text {
+    /// Markup rendered by Compose's own HTML parser.
+    ///
+    /// It understands weight, emphasis, decoration, baseline, colour, headings, lists,
+    /// links and paragraph alignment — the last of which a chain of styled runs cannot
+    /// express, since Compose applies `textAlign` per text node. `<img>` is dropped, but
+    /// leaves a U+FFFC behind, and `inlineViews` fill those in order.
+    ///
+    /// `onLinkTap` receives a tapped link in place of Compose's own `UriHandler`, which
+    /// would otherwise open the browser without the app seeing the URL.
+    public init(html: String, inlineViews: [TextInlineView] = [], onLinkTap: (@Sendable (URL) -> Void)? = nil) {
+        self.init(spec: TextSpec(
+            html: html,
+            htmlLinkAction: onLinkTap,
+            inlineViews: inlineViews.map { $0.view },
+            inlineSizes: inlineViews.map { (width: $0.width, height: $0.height) }
+        ))
+    }
+
     public init(_ attributedContent: AttributedString) {
         self.init(attributedContent, inlineViews: [])
     }
