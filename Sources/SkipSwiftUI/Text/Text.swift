@@ -10,6 +10,10 @@ import SkipUI
 /* @frozen */ public struct Text : Equatable, Sendable {
     let spec: TextSpec
     var modifierChain: [@Sendable (any View) -> any View] = []
+    /// The same styling as `modifierChain`, but as data. Only a `+` operand reads it:
+    /// Compose needs one `AnnotatedString` with a `SpanStyle` per segment, and a chain
+    /// of environment-based view modifiers cannot say that. See `TextRunStyle`.
+    var runStyle = TextRunStyle()
 
     init(spec: TextSpec) {
         self.spec = spec
@@ -37,6 +41,8 @@ struct TextSpec : Equatable, @unchecked Sendable {
     var htmlLinkAction: (@Sendable (URL) -> Void)?
     var inlineViews: [any View]?
     var inlineSizes: [(width: Double, height: Double)]?
+    /// The operands of a `Text + Text`, flattened: `a + b + c` is three segments.
+    var segments: [TextSegment]?
     var key: LocalizedStringKey?
     var resource: AndroidLocalizedStringResource?
     var tableName: String?
@@ -48,6 +54,7 @@ struct TextSpec : Equatable, @unchecked Sendable {
         return lhs.verbatim == rhs.verbatim
             && lhs.richText == rhs.richText
             && lhs.html == rhs.html
+            && lhs.segments == rhs.segments
             && lhs.key == rhs.key
             && lhs.resource == rhs.resource
             && lhs.tableName == rhs.tableName
@@ -69,7 +76,15 @@ extension Text : SkipUIBridging {
             return view.Java_viewOrEmpty
         }
 
-        if let verbatim = spec.verbatim {
+        if let segments = spec.segments {
+            // Each operand crosses as a fully-formed `SkipUI.Text`, so its key, table,
+            // bundle and locale resolve at compose time exactly as a standalone one's
+            // would, alongside the record that says how to style it.
+            return SkipUI.Text(
+                bridgedSegments: segments.map { $0.text.Java_view },
+                bridgedSegmentStyles: segments.map { $0.style.record }
+            )
+        } else if let verbatim = spec.verbatim {
             return SkipUI.Text(verbatim: verbatim)
         } else if let html = spec.html {
             let sizes = spec.inlineSizes ?? []
@@ -313,10 +328,37 @@ public struct TextInlineView {
     }
 }
 
+/// One operand of a `Text + Text`: the text itself, and how to style it.
+struct TextSegment : Equatable, @unchecked Sendable {
+    var text: Text
+    var style: TextRunStyle
+}
+
 extension Text {
-    @available(*, unavailable)
     public static func + (lhs: Text, rhs: Text) -> Text {
-        fatalError()
+        var spec = TextSpec()
+        spec.segments = lhs.concatenationSegments + rhs.concatenationSegments
+        return Text(spec: spec)
+    }
+
+    /// This text as segments to concatenate — its own if it is already a concatenation,
+    /// so `a + b + c` flattens to three rather than nesting.
+    private var concatenationSegments: [TextSegment] {
+        if let segments = spec.segments {
+            return segments
+        }
+        // Silently dropping an operand's styling is the failure mode to avoid here, so
+        // anything a `SpanStyle` cannot carry says so, and says what to do instead.
+        if !runStyle.unsupported.isEmpty {
+            let modifiers = runStyle.unsupported.joined(separator: ", ")
+            preconditionFailure("Text.\(modifiers) cannot style one operand of a Text + Text — Compose styles a concatenation with a SpanStyle per segment, which cannot express it. Apply the modifier to the concatenated Text instead.")
+        }
+        if spec.inlineViews?.isEmpty == false {
+            preconditionFailure("A Text carrying inline views cannot be an operand of a Text + Text. Concatenate the text, then use Text(_:inlineViews:) on the result.")
+        }
+        // Built from the spec alone: the operand's `modifierChain` is deliberately not
+        // run, since `runStyle` is the same styling in the form Compose needs.
+        return [TextSegment(text: Text(spec: spec), style: runStyle)]
     }
 }
 
@@ -355,6 +397,7 @@ extension Text {
         text.modifierChain.append {
             $0.foregroundColor(color)
         }
+        text.runStyle.color = color?.richTextColorToken
         return text
     }
 
@@ -362,6 +405,12 @@ extension Text {
         var text = self
         text.modifierChain.append {
             $0.foregroundStyle(style)
+        }
+        if let token = (style as? RichTextColorStyle)?.richTextColorToken {
+            text.runStyle.color = token
+        } else {
+            // A gradient or a material has no single colour to give a `SpanStyle`.
+            text.runStyle.unsupported.append("foregroundStyle")
         }
         return text
     }
@@ -371,6 +420,7 @@ extension Text {
         text.modifierChain.append {
             $0.font(font)
         }
+        text.runStyle.apply(font: font)
         return text
     }
 
@@ -379,6 +429,7 @@ extension Text {
         text.modifierChain.append {
             $0.fontWeight(weight)
         }
+        text.runStyle.weight = weight?.value
         return text
     }
 
@@ -396,6 +447,7 @@ extension Text {
         text.modifierChain.append {
             $0.bold(isActive)
         }
+        text.runStyle.weight = isActive ? Font.Weight.bold.value : nil
         return text
     }
 
@@ -408,6 +460,7 @@ extension Text {
         text.modifierChain.append {
             $0.italic(isActive)
         }
+        text.runStyle.isItalic = isActive
         return text
     }
 
@@ -416,6 +469,7 @@ extension Text {
         text.modifierChain.append {
             $0.monospaced(isActive)
         }
+        text.runStyle.isMonospaced = isActive
         return text
     }
 
@@ -423,6 +477,12 @@ extension Text {
         var text = self
         text.modifierChain.append {
             $0.fontDesign(design)
+        }
+        if design == .monospaced || design == nil {
+            text.runStyle.isMonospaced = design == .monospaced
+        } else {
+            // `SpanStyle` names a family, and only the monospaced one has a name here.
+            text.runStyle.unsupported.append("fontDesign")
         }
         return text
     }
@@ -437,6 +497,7 @@ extension Text {
         text.modifierChain.append {
             $0.strikethrough(isActive, pattern: pattern, color: color)
         }
+        text.runStyle.isStruckThrough = isActive
         return text
     }
 
@@ -445,6 +506,7 @@ extension Text {
         text.modifierChain.append {
             $0.underline(isActive, pattern: pattern, color: color)
         }
+        text.runStyle.isUnderlined = isActive
         return text
     }
 
@@ -455,6 +517,7 @@ extension Text {
 
     nonisolated public func tracking(_ tracking: CGFloat) -> Text {
         var text = self
+        text.runStyle.unsupported.append("tracking")
         text.modifierChain.append {
             $0.tracking(tracking)
         }

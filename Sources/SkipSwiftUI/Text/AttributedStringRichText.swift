@@ -9,12 +9,9 @@ import Foundation
 ///
 /// Markdown was the obvious bridge and is not enough: it cannot express colour, font
 /// size, underline or baseline at all. So each run crosses as a record of its
-/// attributes instead — one record per run separated by ASCII RS, one field per
-/// attribute separated by ASCII US, in the order `SkipUI.RichText` reads them.
+/// attributes instead — see `RichTextEncoding`, which `TextRunStyle` also emits, so a
+/// styled string and a `Text + Text` operand provably agree on the format.
 extension AttributedString {
-    private static let recordSeparator = "\u{001E}"
-    private static let fieldSeparator = "\u{001F}"
-
     /// The object-replacement character, which marks where an inline view goes — the
     /// same one `NSAttributedString` uses for an attachment.
     static let attachmentCharacter: Character = "\u{FFFC}"
@@ -75,75 +72,33 @@ extension AttributedString {
                 size = unscaled * scaledBy
             }
 
-            var decorations = ""
-            if run.underlineStyle != nil { decorations += "u" }
-            if run.strikethroughStyle != nil { decorations += "s" }
-
             var baseline = ""
             if let offset = run.baselineOffset, offset != 0 {
                 baseline = offset > 0 ? "super" : "sub"
             }
 
-            let color = run.foregroundColor.flatMap { Self.token(for: $0.spec) }
-            let fields = [
-                Self.sanitized(text),
-                weight.map { String($0.value) } ?? "",
-                font?.isItalic == true ? "1" : "",
-                isMonospaced ? "1" : "",
-                size.map { String(Double($0)) } ?? "",
-                color ?? "",
-                decorations,
-                baseline,
-                run.link.map { Self.sanitized($0.absoluteString) } ?? "",
-                inlineIndex.map { String($0) } ?? "",
-                inlineView.map { String($0.width) } ?? "",
-                inlineView.map { String($0.height) } ?? "",
-            ]
-            if fields.dropFirst().contains(where: { !$0.isEmpty }) {
+            let record = RichTextEncoding.record(
+                text: text,
+                weight: weight?.value,
+                isItalic: font?.isItalic == true,
+                isMonospaced: isMonospaced,
+                size: size.map { Double($0) },
+                color: run.foregroundColor.flatMap { RichTextEncoding.token(for: $0.spec) },
+                isUnderlined: run.underlineStyle != nil,
+                isStruckThrough: run.strikethroughStyle != nil,
+                baseline: baseline,
+                link: run.link?.absoluteString ?? "",
+                inlineViewIndex: inlineIndex,
+                inlineViewWidth: inlineView.map { $0.width },
+                inlineViewHeight: inlineView.map { $0.height }
+            )
+            if RichTextEncoding.isStyled(record) {
                 isStyled = true
             }
-            records.append(fields.joined(separator: Self.fieldSeparator))
+            records.append(record)
         }
 
-        return isStyled ? records.joined(separator: Self.recordSeparator) : nil
+        return isStyled ? records.joined(separator: RichTextEncoding.recordSeparator) : nil
         #endif
-    }
-
-    /// A decimal ARGB literal, or the name of a token the composition resolves against
-    /// the current theme. `nil` for anything else, which inherits.
-    private static func token(for spec: ColorSpec) -> String? {
-        switch spec.type {
-        case .primary:
-            return "primary"
-        case .secondary:
-            return "secondary"
-        case .accent:
-            return "accent"
-        case .rgb(let red, let green, let blue, let alpha):
-            return argb(red: red, green: green, blue: blue, alpha: alpha * spec.opacity)
-        case .w(let white, let alpha):
-            return argb(red: white, green: white, blue: white, alpha: alpha * spec.opacity)
-        default:
-            return nil
-        }
-    }
-
-    /// Decimal rather than hex: SkipLib's `Int64(_ string:)` has no radix parameter.
-    private static func argb(red: Double, green: Double, blue: Double, alpha: Double) -> String {
-        func byte(_ component: Double) -> Int64 {
-            Int64((min(max(component, 0), 1) * 255).rounded())
-        }
-        let packed = byte(alpha) << 24 | byte(red) << 16 | byte(green) << 8 | byte(blue)
-        return String(packed)
-    }
-
-    /// The separators are structural, so they can never appear inside a field.
-    private static func sanitized(_ text: String) -> String {
-        guard text.contains(recordSeparator) || text.contains(fieldSeparator) else {
-            return text
-        }
-        return text
-            .replacingOccurrences(of: recordSeparator, with: "")
-            .replacingOccurrences(of: fieldSeparator, with: "")
     }
 }

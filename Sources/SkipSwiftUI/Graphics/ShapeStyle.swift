@@ -14,6 +14,16 @@ func stubShapeStyle() -> Color {
     return Color.clear
 }
 
+/// A `ShapeStyle` that is really just a colour, and so can cross the rich-text bridge as
+/// one — see `TextRunStyle`.
+///
+/// A protocol rather than a chain of casts because the two wrappers a style commonly
+/// arrives in cannot be cast through: `AnyShapeStyle` erases its base, and
+/// `OpacityShapeStyle` is generic over it.
+protocol RichTextColorStyle {
+    var richTextColorToken: String? { get }
+}
+
 extension ShapeStyle {
     public var secondary: some ShapeStyle {
         return self
@@ -46,6 +56,12 @@ extension ShapeStyle {
 //    public typealias Resolved = Never
 }
 
+extension AnyShapeStyle : RichTextColorStyle {
+    var richTextColorToken: String? {
+        return (style as? RichTextColorStyle)?.richTextColorToken
+    }
+}
+
 extension ShapeStyle {
     @available(*, unavailable)
     /* @inlinable */ public func blendMode(_ mode: BlendMode) -> some ShapeStyle {
@@ -65,6 +81,13 @@ struct OpacityShapeStyle<S> : ShapeStyle where S : ShapeStyle {
 
     var Java_view: any SkipUI.View {
         return base.Java_view.opacity(opacity)
+    }
+}
+
+extension OpacityShapeStyle : RichTextColorStyle {
+    var richTextColorToken: String? {
+        // A named token carries no alpha to scale, so it can only cross unchanged.
+        return (base as? RichTextColorStyle)?.richTextColorToken
     }
 }
 
@@ -139,6 +162,20 @@ extension ShapeStyle where Self == ForegroundStyle {
             return Color.secondary.Java_view
         default:
             return SkipUI.EmptyView()
+        }
+    }
+}
+
+extension HierarchicalShapeStyle : RichTextColorStyle {
+    // In this file because `level` is `private`, and Swift `private` is file-scoped.
+    var richTextColorToken: String? {
+        switch level {
+        case 0:
+            return "primary"
+        case 1:
+            return "secondary"
+        default:
+            return nil
         }
     }
 }

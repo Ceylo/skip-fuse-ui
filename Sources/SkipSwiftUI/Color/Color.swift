@@ -332,3 +332,9 @@ extension ShapeStyle where Self == Color {
     public static var black: Color { Color.black }
     public static var clear: Color { Color.clear }
 }
+
+extension Color : RichTextColorStyle {
+    var richTextColorToken: String? {
+        return RichTextEncoding.token(for: spec)
+    }
+}
