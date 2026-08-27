@@ -292,7 +292,12 @@ extension Text {
         ))
     }
 
-    public init(_ attributedContent: AttributedString) {
+    /// `@_disfavoredOverload` because `AttributedString` is `ExpressibleByStringLiteral`:
+    /// without it a plain `Text("…")` literal prefers this over
+    /// `init(_:tableName:bundle:comment:)`, and every literal takes the rich-text path
+    /// instead of the key path — silently losing implicit markdown (`**bold**`,
+    /// `[link](url)`, `\`code\``) and localization for the whole app.
+    @_disfavoredOverload public init(_ attributedContent: AttributedString) {
         self.init(attributedContent, inlineViews: [])
     }
 
