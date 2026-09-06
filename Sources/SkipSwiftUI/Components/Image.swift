@@ -224,4 +224,33 @@ extension Image {
     public init(uiImage: UIImage) {
         self.init(spec: .init(.uiImage(uiImage)))
     }
+
+    /// An image whose bitmap is read in Compose's **draw** phase rather than baked into
+    /// this view value at composition — see ``ImageHolder``.
+    public init(holder: ImageHolder) {
+        self.init(spec: .init(.java(SkipUI.Image(bridgedHolder: holder.holder))))
+    }
+}
+
+/// A mutable image an ``Image`` draws without being recomposed.
+///
+/// `Image(uiImage:)` is a value: the bitmap reaches the screen only through a
+/// recomposition, so an image that becomes available *after* a composition has been
+/// applied — from `onAppear`, which is a Compose `SideEffect`, or from a download
+/// completing — cannot be painted in that composition's frame, and the view draws nothing
+/// for a frame. Writing to a holder repaints instead of recomposing, so the image is
+/// painted in whichever frame it arrives in, and a node that already draws its image
+/// never has to be swapped in for a placeholder.
+///
+/// Set the image on the main actor.
+public final class ImageHolder {
+    let holder = SkipUI.ImageHolder()
+
+    public init() {
+    }
+
+    /// The image to draw, or `nil` to draw nothing.
+    public func setImage(_ image: UIImage?) {
+        holder.setImage(image?.uiImage)
+    }
 }
