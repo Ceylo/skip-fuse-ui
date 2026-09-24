@@ -1,4 +1,5 @@
 // swift-tools-version: 6.1
+import CompilerPluginSupport
 import PackageDescription
 
 let android = Context.environment["TARGET_OS_ANDROID"] ?? "0" != "0"
@@ -18,6 +19,9 @@ let package = Package(
         .package(url: "https://github.com/skiptools/skip-android-bridge.git", "0.6.6"..<"2.0.0"),
         .package(url: "https://github.com/skiptools/swift-jni.git", "0.5.0"..<"2.0.0"),
         .package(url: "https://github.com/Ceylo/skip-ui.git", branch: "android"),
+        // Declared unconditionally, although only the Android build uses it, so that a
+        // client's Package.resolved does not change between Android and Darwin resolves.
+        .package(url: "https://github.com/swiftlang/swift-syntax.git", "600.0.0"..<"700.0.0"),
     ],
     targets: [
         .target(name: "SkipFuseUI", dependencies: ["SkipSwiftUI"]),
@@ -48,7 +52,14 @@ let package = Package(
 )
 
 if android {
-    package.targets += [.target(name: "SwiftUI", dependencies: ["SkipSwiftUI"])]
+    package.targets += [
+        .target(name: "SwiftUI", dependencies: ["SkipSwiftUI", "SkipPreviewMacros"]),
+        // Backs the `#Preview` and `@Previewable` stubs in the SwiftUI shim.
+        .macro(name: "SkipPreviewMacros", dependencies: [
+            .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+            .product(name: "SwiftCompilerPlugin", package: "swift-syntax"),
+        ]),
+    ]
 }
 
 // SKIP_DEPENDENCY_ROOT overrides every skiptools dependency with a local
