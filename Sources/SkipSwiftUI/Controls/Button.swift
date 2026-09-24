@@ -1,5 +1,9 @@
 // Copyright 2025–2026 Skip
 // SPDX-License-Identifier: MPL-2.0
+#if !ROBOLECTRIC && canImport(CoreGraphics)
+import CoreGraphics
+#endif
+import Foundation
 import SkipBridge
 import SkipFuse
 import SkipUI
@@ -219,8 +223,8 @@ public struct PlainButtonStyle : PrimitiveButtonStyle {
     public let identifier = 1 // For bridging
 }
 
+/// Compose has no Liquid Glass: SkipUI draws this as `.bordered`.
 public struct GlassButtonStyle : PrimitiveButtonStyle {
-    @available(*, unavailable)
     public init() {
     }
 
@@ -229,6 +233,18 @@ public struct GlassButtonStyle : PrimitiveButtonStyle {
     }
 
     public let identifier = 5 // For bridging
+}
+
+/// Compose has no Liquid Glass: SkipUI draws this as `.borderedProminent`.
+public struct GlassProminentButtonStyle : PrimitiveButtonStyle {
+    public init() {
+    }
+
+    @MainActor @preconcurrency public func makeBody(configuration: GlassProminentButtonStyle.Configuration) -> some View {
+        stubView()
+    }
+
+    public let identifier = 6 // For bridging
 }
 
 public struct M3TextButtonStyle : PrimitiveButtonStyle {
@@ -289,9 +305,14 @@ extension PrimitiveButtonStyle where Self == BorderedProminentButtonStyle {
 }
 
 extension PrimitiveButtonStyle where Self == GlassButtonStyle {
-    @available(*, unavailable)
     @MainActor @preconcurrency public static var glass: GlassButtonStyle {
-        fatalError()
+        return GlassButtonStyle()
+    }
+}
+
+extension PrimitiveButtonStyle where Self == GlassProminentButtonStyle {
+    @MainActor @preconcurrency public static var glassProminent: GlassProminentButtonStyle {
+        return GlassProminentButtonStyle()
     }
 }
 
@@ -326,6 +347,12 @@ extension View {
         stubView()
     }
 
+    nonisolated public func buttonBorderShape(_ shape: ButtonBorderShape) -> some View {
+        return ModifierView(target: self) {
+            $0.Java_viewOrEmpty.buttonBorderShape(bridgedShape: shape.identifier, radius: shape.radius)
+        }
+    }
+
     nonisolated public func buttonSizing(_ sizing: ButtonSizing) -> some View {
         // We only support .automatic
         return self
@@ -336,4 +363,19 @@ extension View {
             $0.Java_viewOrEmpty.buttonStyle(bridgedStyle: style.identifier)
         }
     }
+}
+
+/// A shape that is used to draw a button's border. SkipUI applies it to the bordered
+/// and bordered-prominent styles.
+public struct ButtonBorderShape : Equatable, Sendable {
+    let identifier: Int // For bridging
+    let radius: CGFloat // For bridging; negative for the style's default
+
+    public static let automatic = ButtonBorderShape(identifier: 0, radius: -1.0)
+    public static let capsule = ButtonBorderShape(identifier: 1, radius: -1.0)
+    public static let roundedRectangle = ButtonBorderShape(identifier: 2, radius: -1.0)
+    public static func roundedRectangle(radius: CGFloat) -> ButtonBorderShape {
+        return ButtonBorderShape(identifier: 2, radius: radius)
+    }
+    public static let circle = ButtonBorderShape(identifier: 3, radius: -1.0)
 }
