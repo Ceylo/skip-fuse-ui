@@ -18,13 +18,17 @@ public struct Glass : Equatable, Sendable {
     }
 }
 
+/// A pass-through, like `glassEffect`: without it a shared source's glass branch, taken
+/// because `#available(iOS 26, *)` is vacuously true off-Apple, does not compile.
 @MainActor @preconcurrency public struct GlassEffectContainer<Content> : View, Sendable where Content : View {
-    @available(*, unavailable)
+    let content: Content
+
     public init(spacing: CGFloat? = nil, @ViewBuilder content: () -> Content) {
+        self.content = content()
     }
 
     public var body: some View {
-        EmptyView()
+        content
     }
 }
 
