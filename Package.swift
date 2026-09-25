@@ -19,8 +19,7 @@ let package = Package(
         .package(url: "https://github.com/skiptools/skip-android-bridge.git", "0.6.6"..<"2.0.0"),
         .package(url: "https://github.com/skiptools/swift-jni.git", "0.5.0"..<"2.0.0"),
         .package(url: "https://github.com/Ceylo/skip-ui.git", branch: "android"),
-        // Declared unconditionally, although only the Android build uses it, so that a
-        // client's Package.resolved does not change between Android and Darwin resolves.
+        // Used only by the Android-only SkipPreviewMacros target below.
         .package(url: "https://github.com/swiftlang/swift-syntax.git", "600.0.0"..<"700.0.0"),
     ],
     targets: [
