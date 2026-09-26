@@ -363,9 +363,9 @@ extension View {
     }
 
     nonisolated public func fullScreenCover<Content>(isPresented: Binding<Bool>, onDismiss: (() -> Void)? = nil, @ViewBuilder content: @escaping () -> Content) -> some View where Content : View {
-        let content = content()
+        // A builder, not a view: SwiftUI only calls `content` while presenting.
         return ModifierView(target: self) {
-            $0.Java_viewOrEmpty.fullScreenCover(getIsPresented: { isPresented.wrappedValue }, setIsPresented: { isPresented.wrappedValue = $0 }, onDismiss: onDismiss, bridgedContent: content.Java_viewOrEmpty)
+            $0.Java_viewOrEmpty.fullScreenCover(getIsPresented: { isPresented.wrappedValue }, setIsPresented: { isPresented.wrappedValue = $0 }, onDismiss: onDismiss, bridgedContentBuilder: { content().Java_viewOrEmpty })
         }
     }
 }
@@ -390,9 +390,9 @@ extension View {
     }
 
     nonisolated public func sheet<Content>(isPresented: Binding<Bool>, onDismiss: (() -> Void)? = nil, @ViewBuilder content: @escaping () -> Content) -> some View where Content : View {
-        let content = content()
+        // A builder, not a view: SwiftUI only calls `content` while presenting.
         return ModifierView(target: self) {
-            $0.Java_viewOrEmpty.sheet(getIsPresented: { isPresented.wrappedValue }, setIsPresented: { isPresented.wrappedValue = $0 }, onDismiss: onDismiss, bridgedContent: content.Java_viewOrEmpty)
+            $0.Java_viewOrEmpty.sheet(getIsPresented: { isPresented.wrappedValue }, setIsPresented: { isPresented.wrappedValue = $0 }, onDismiss: onDismiss, bridgedContentBuilder: { content().Java_viewOrEmpty })
         }
     }
 }

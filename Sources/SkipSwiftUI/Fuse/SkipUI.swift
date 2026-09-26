@@ -34,14 +34,18 @@ extension View {
 }
 
 /// Provides a native wrapper around `SkipUI.Views` that are represented in Compose.
+///
+/// Holds a JNI *global* reference: the pointer it is created from is typically a local reference, valid
+/// only until the JNI call that delivered it returns, and a `ViewModifier` may capture its `content` in a
+/// closure Compose calls later (`ScrollViewReader { _ in content… }`).
 public struct JavaBackedView : SkipUI.View, JObjectConvertible, SkipUIBridging, @unchecked Sendable {
-    private let ptr: JavaObjectPointer
+    private let object: JObject
 
     public init?(_ ptr: JavaObjectPointer?) {
         guard let ptr else {
             return nil
         }
-        self.ptr = ptr
+        self.object = JObject(ptr)
     }
 
     nonisolated public static func fromJavaObject(_ obj: JavaObjectPointer?, options: JConvertibleOptions) -> Self {
@@ -49,7 +53,7 @@ public struct JavaBackedView : SkipUI.View, JObjectConvertible, SkipUIBridging, 
     }
 
     nonisolated public func toJavaObject(options: JConvertibleOptions) -> JavaObjectPointer? {
-        return ptr
+        return object.safePointer()
     }
 
     public var Java_view: any SkipUI.View {

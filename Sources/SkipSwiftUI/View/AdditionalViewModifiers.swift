@@ -222,9 +222,17 @@ extension View {
 }
 
 extension View {
-    @available(*, unavailable)
+    /// SkipUI has no control sizes, so this is a pass-through rather than unavailable,
+    /// letting shared sources compile; controls keep their Material size.
     nonisolated public func controlSize(_ controlSize: ControlSize) -> some View {
-        stubView()
+        return self
+    }
+
+    /// A pass-through: a Compose tap or gesture already covers the view's whole bounds,
+    /// which is what the usual `contentShape(Rectangle())` asks for. Any other shape is
+    /// ignored too, so a `Circle()` does not narrow the hit area to the circle.
+    nonisolated public func contentShape(_ shape: some Shape, eoFill: Bool = false) -> some View {
+        return self
     }
 
     @available(*, unavailable)
