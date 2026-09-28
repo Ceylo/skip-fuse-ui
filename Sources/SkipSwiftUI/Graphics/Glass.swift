@@ -21,16 +21,23 @@ public struct Glass : Equatable, Sendable {
 }
 
 /// A pass-through, like `glassEffect`: without it a shared source's glass branch, taken
-/// because `#available(iOS 26, *)` is vacuously true off-Apple, does not compile.
-@MainActor @preconcurrency public struct GlassEffectContainer<Content> : View, Sendable where Content : View {
+/// because `#available(iOS 26, *)` is vacuously true off-Apple, does not compile. It
+/// bridges as a `Group`, since a `body` alone reaches Compose as nothing.
+public struct GlassEffectContainer<Content> {
     let content: Content
 
-    public init(spacing: CGFloat? = nil, @ViewBuilder content: () -> Content) {
+    public typealias Body = Never
+}
+
+extension GlassEffectContainer : View where Content : View {
+    nonisolated public init(spacing: CGFloat? = nil, @ViewBuilder content: () -> Content) {
         self.content = content()
     }
+}
 
-    public var body: some View {
-        content
+extension GlassEffectContainer : SkipUIBridging {
+    public var Java_view: any SkipUI.View {
+        return SkipUI.Group(bridgedContent: (content as? any SkipUIBridging)?.Java_view ?? SkipUI.EmptyView())
     }
 }
 
