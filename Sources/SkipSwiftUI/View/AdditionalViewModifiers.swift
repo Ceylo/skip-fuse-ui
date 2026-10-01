@@ -445,6 +445,7 @@ extension View {
             return $0.opacity(opacity)
         }
     }
+
 }
 
 extension View {
@@ -551,6 +552,27 @@ extension View {
             return $0.scaleEffect(x: x, y: y, anchorX: anchor.x, anchorY: anchor.y)
         }
     }
+
+    /// Applies scale and translation in one Android compositor layer without relocating layout.
+    nonisolated public func compositorTransform(
+        scaleX: CGFloat,
+        scaleY: CGFloat,
+        translationX: CGFloat,
+        translationY: CGFloat,
+        anchor: UnitPoint = .center
+    ) -> some View {
+        return ModifierView(animatableTarget: self) {
+            return $0.compositorTransform(
+                scaleX: scaleX,
+                scaleY: scaleY,
+                translationX: translationX,
+                translationY: translationY,
+                anchorX: anchor.x,
+                anchorY: anchor.y
+            )
+        }
+    }
+
 }
 
 extension View {
