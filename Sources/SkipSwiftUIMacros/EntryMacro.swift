@@ -20,15 +20,18 @@ public struct EntryMacro: AccessorMacro, PeerMacro {
         guard let entry = try? Entry(declaration, in: context) else {
             return []
         }
-        // The helper macro makes `defaultValue` computed, so each read gets a fresh value
-        // and there is no global mutable state, while its type can still be inferred from
-        // the initializer.
+        // The helper macro makes both computed, so each read gets a fresh value and there
+        // is no global mutable state, while their type can still be inferred from the
+        // initializer. As in SwiftUI, the initializer lives in a static of the extended
+        // type, where `Self` and its private members resolve as they do at the call site.
+        let defaultValue = context.makeUniqueName("defaultValue")
         return [
+            "@SwiftUI.__EntryDefaultValue private static var \(defaultValue)\(entry.typeAnnotation) = \(entry.initializer)",
             """
             private struct \(entry.keyName): SwiftUI.EnvironmentKey {
-                @SwiftUI.__EntryDefaultValue static var defaultValue\(entry.typeAnnotation) = \(entry.initializer)
+                @SwiftUI.__EntryDefaultValue static var defaultValue\(entry.typeAnnotation) = \(defaultValue)
             }
-            """
+            """,
         ]
     }
 }
