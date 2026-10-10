@@ -8,13 +8,13 @@ import SkipSwiftUI
 // the preview body is still type-checked.
 
 @freestanding(declaration)
-public macro Preview(_ name: String? = nil, @ViewBuilder body: @escaping @MainActor () -> any View) = #externalMacro(module: "SkipPreviewMacros", type: "PreviewMacro")
+public macro Preview(_ name: String? = nil, @ViewBuilder body: @escaping @MainActor () -> any View) = #externalMacro(module: "SkipSwiftUIMacros", type: "PreviewMacro")
 
 @freestanding(declaration)
-public macro Preview(_ name: String? = nil, traits: PreviewTrait<Preview.ViewTraits>, _ additionalTraits: PreviewTrait<Preview.ViewTraits>..., @ViewBuilder body: @escaping @MainActor () -> any View) = #externalMacro(module: "SkipPreviewMacros", type: "PreviewMacro")
+public macro Preview(_ name: String? = nil, traits: PreviewTrait<Preview.ViewTraits>, _ additionalTraits: PreviewTrait<Preview.ViewTraits>..., @ViewBuilder body: @escaping @MainActor () -> any View) = #externalMacro(module: "SkipSwiftUIMacros", type: "PreviewMacro")
 
 @attached(peer)
-public macro Previewable() = #externalMacro(module: "SkipPreviewMacros", type: "PreviewableMacro")
+public macro Previewable() = #externalMacro(module: "SkipSwiftUIMacros", type: "PreviewableMacro")
 
 public struct Preview {
     public struct ViewTraits {

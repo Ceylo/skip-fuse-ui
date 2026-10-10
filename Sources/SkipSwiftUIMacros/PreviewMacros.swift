@@ -1,7 +1,6 @@
 // Copyright 2025–2026 Skip
 // SPDX-License-Identifier: MPL-2.0
 
-import SwiftCompilerPlugin
 import SwiftSyntax
 import SwiftSyntaxMacros
 
@@ -19,9 +18,4 @@ public struct PreviewableMacro: PeerMacro {
     public static func expansion(of node: AttributeSyntax, providingPeersOf declaration: some DeclSyntaxProtocol, in context: some MacroExpansionContext) throws -> [DeclSyntax] {
         []
     }
-}
-
-@main
-struct SkipPreviewMacrosPlugin: CompilerPlugin {
-    let providingMacros: [Macro.Type] = [PreviewMacro.self, PreviewableMacro.self]
 }
