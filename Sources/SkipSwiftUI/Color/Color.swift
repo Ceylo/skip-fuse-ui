@@ -64,6 +64,7 @@ enum ColorType : Hashable, Sendable {
     case hsb(Double, Double, Double, Double)
     case named(String, Bundle?)
     case systemBackground
+    case material(MaterialColorRole)
     indirect case saturate(ColorSpec, Double)
 }
 
@@ -126,6 +127,8 @@ extension Color : SkipUIBridging {
             SkipUI.Color(name: name, bridgedBundle: bundle)
         case .systemBackground:
             SkipUI.Color._background
+        case .material(let role):
+            SkipUI.Color.material(bridgedRole: role.rawValue)
         case .saturate(let spec, let multiplier):
             Java_color(for: spec).saturate(by: multiplier)
         }
@@ -204,6 +207,11 @@ extension Color {
     public static let clear = Color(spec: .init(.clear))
     public static let primary = Color(spec: .init(.primary))
     public static let secondary = Color(spec: .init(.secondary))
+
+    /// A role of the current Material color scheme, for Android looks SwiftUI has no color for.
+    public static func material(_ role: MaterialColorRole) -> Color {
+        Color(spec: .init(.material(role)))
+    }
 }
 
 //extension Color {
@@ -337,4 +345,44 @@ extension Color : RichTextColorStyle {
     var richTextColorToken: String? {
         return RichTextEncoding.token(for: spec)
     }
+}
+
+/// A Material 3 `ColorScheme` role, named as its property.
+public enum MaterialColorRole : String, Hashable, Sendable {
+    case primary
+    case onPrimary
+    case primaryContainer
+    case onPrimaryContainer
+    case inversePrimary
+    case secondary
+    case onSecondary
+    case secondaryContainer
+    case onSecondaryContainer
+    case tertiary
+    case onTertiary
+    case tertiaryContainer
+    case onTertiaryContainer
+    case background
+    case onBackground
+    case surface
+    case onSurface
+    case surfaceVariant
+    case onSurfaceVariant
+    case surfaceTint
+    case inverseSurface
+    case inverseOnSurface
+    case error
+    case onError
+    case errorContainer
+    case onErrorContainer
+    case outline
+    case outlineVariant
+    case scrim
+    case surfaceBright
+    case surfaceContainer
+    case surfaceContainerHigh
+    case surfaceContainerHighest
+    case surfaceContainerLow
+    case surfaceContainerLowest
+    case surfaceDim
 }
