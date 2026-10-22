@@ -405,16 +405,26 @@ public class UNNotificationAttachment {
     public let url: URL
     public let type: String
     public let timeShift: TimeInterval
+    let hidesThumbnail: Bool
 
     public init(identifier: String, url: URL, type: String = "public.data", timeShift: TimeInterval = 0) {
         self.identifier = identifier
         self.url = url
         self.type = type
         self.timeShift = timeShift
+        self.hidesThumbnail = false
+    }
+
+    public init(identifier: String, url: URL, options: [AnyHashable: Any]? = nil) throws {
+        self.identifier = identifier
+        self.url = url
+        self.type = SkipUI.UNNotificationAttachment.type(of: url, hint: options?[UNNotificationAttachmentOptionsTypeHintKey] as? String)
+        self.timeShift = 0
+        self.hidesThumbnail = options?[UNNotificationAttachmentOptionsThumbnailHiddenKey] as? Bool ?? false
     }
 
     public static func attachment(withIdentifier identifier: String, url: URL, options: [AnyHashable: Any]? = nil) throws -> UNNotificationAttachment {
-        return UNNotificationAttachment(identifier: identifier, url: url, type: "public.data")
+        return try UNNotificationAttachment(identifier: identifier, url: url, options: options)
     }
 
     init(Java_attachment: SkipUI.UNNotificationAttachment) {
@@ -422,10 +432,11 @@ public class UNNotificationAttachment {
         self.url = Java_attachment.url
         self.type = Java_attachment.type
         self.timeShift = Java_attachment.timeShift
+        self.hidesThumbnail = Java_attachment.hidesThumbnail
     }
 
     var Java_attachment: SkipUI.UNNotificationAttachment {
-        return SkipUI.UNNotificationAttachment(identifier: identifier, url: url, type: type, timeShift: timeShift)
+        return SkipUI.UNNotificationAttachment(identifier: identifier, url: url, type: type, timeShift: timeShift, hidesThumbnail: hidesThumbnail)
     }
 }
 
@@ -544,9 +555,9 @@ public class UNNotificationSettings {
         self.Java_settings = Java_settings
     }
     
-    @available(*, unavailable)
+    /// Android has no app-wide sound setting: each channel's importance decides whether it makes a sound.
     public var soundSetting: UNNotificationSetting {
-        fatalError()
+        return .enabled
     }
     
     @available(*, unavailable)
