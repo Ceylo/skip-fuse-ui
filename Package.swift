@@ -17,9 +17,9 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/skiptools/skip.git", from: "1.9.8"),
-        .package(url: "https://github.com/skiptools/skip-fuse.git", from: "1.0.3"),
-        .package(url: "https://github.com/skiptools/skip-bridge.git", "0.17.3"..<"2.0.0"),
-        .package(url: "https://github.com/skiptools/skip-android-bridge.git", "0.6.6"..<"2.0.0"),
+        .package(url: "https://github.com/Ceylo/skip-fuse.git", branch: "android"),
+        .package(url: "https://github.com/Ceylo/skip-bridge.git", branch: "android"),
+        .package(url: "https://github.com/Ceylo/skip-android-bridge.git", branch: "android"),
         .package(url: "https://github.com/skiptools/swift-jni.git", "0.5.0"..<"2.0.0"),
         .package(url: "https://github.com/Ceylo/skip-ui.git", branch: "android"),
         // Used only by the Android-only SkipSwiftUIMacros target below.
