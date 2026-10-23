@@ -122,7 +122,7 @@ public final class UNUserNotificationCenter {
         SkipUI.UNUserNotificationCenter.current().setNotificationCategories(bridgedCategories: categories.map(\.Java_category))
     }
 
-    public func getNotificationCategories() async -> Set<UNNotificationCategory> {
+    public func notificationCategories() async -> Set<UNNotificationCategory> {
         let categories = await SkipUI.UNUserNotificationCenter.current().bridgedNotificationCategories()
         return Set(categories.map { UNNotificationCategory(Java_category: $0) })
     }
@@ -225,9 +225,9 @@ public final class UNNotificationResponse {
 }
 
 public struct UNNotificationActionOptions : OptionSet, Sendable {
-    public let rawValue: Int
+    public let rawValue: UInt
 
-    public init(rawValue: Int) {
+    public init(rawValue: UInt) {
         self.rawValue = rawValue
     }
 
@@ -250,18 +250,18 @@ public final class UNNotificationAction : @unchecked Sendable {
     init(Java_action: SkipUI.UNNotificationAction) {
         self.identifier = Java_action.identifier
         self.title = Java_action.title
-        self.options = UNNotificationActionOptions(rawValue: Java_action.bridgedOptions)
+        self.options = UNNotificationActionOptions(rawValue: UInt(Java_action.bridgedOptions))
     }
 
     var Java_action: SkipUI.UNNotificationAction {
-        return SkipUI.UNNotificationAction(identifier: identifier, title: title, bridgedOptions: options.rawValue)
+        return SkipUI.UNNotificationAction(identifier: identifier, title: title, bridgedOptions: Int(options.rawValue))
     }
 }
 
 public struct UNNotificationCategoryOptions : OptionSet, Sendable {
-    public let rawValue: Int
+    public let rawValue: UInt
 
-    public init(rawValue: Int) {
+    public init(rawValue: UInt) {
         self.rawValue = rawValue
     }
 
@@ -288,11 +288,11 @@ public final class UNNotificationCategory : Hashable, @unchecked Sendable {
         self.identifier = Java_category.identifier
         self.actions = Java_category.actions.map { UNNotificationAction(Java_action: $0) }
         self.intentIdentifiers = Java_category.intentIdentifiers
-        self.options = UNNotificationCategoryOptions(rawValue: Java_category.bridgedOptions)
+        self.options = UNNotificationCategoryOptions(rawValue: UInt(Java_category.bridgedOptions))
     }
 
     var Java_category: SkipUI.UNNotificationCategory {
-        return SkipUI.UNNotificationCategory(identifier: identifier, actions: actions.map(\.Java_action), intentIdentifiers: intentIdentifiers, bridgedOptions: options.rawValue)
+        return SkipUI.UNNotificationCategory(identifier: identifier, actions: actions.map(\.Java_action), intentIdentifiers: intentIdentifiers, bridgedOptions: Int(options.rawValue))
     }
 
     public static func ==(lhs: UNNotificationCategory, rhs: UNNotificationCategory) -> Bool {
