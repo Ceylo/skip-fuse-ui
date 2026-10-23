@@ -287,7 +287,7 @@ public final class UNNotificationCategory : Hashable, @unchecked Sendable {
     init(Java_category: SkipUI.UNNotificationCategory) {
         self.identifier = Java_category.identifier
         self.actions = Java_category.actions.map { UNNotificationAction(Java_action: $0) }
-        self.intentIdentifiers = []
+        self.intentIdentifiers = Java_category.intentIdentifiers
         self.options = UNNotificationCategoryOptions(rawValue: Java_category.bridgedOptions)
     }
 
@@ -304,7 +304,7 @@ public final class UNNotificationCategory : Hashable, @unchecked Sendable {
     }
 }
 
-public enum UNNotificationInterruptionLevel : Int, Sendable {
+public enum UNNotificationInterruptionLevel : UInt, Sendable {
     case passive = 0
     case active = 1
     case timeSensitive = 2
@@ -374,12 +374,12 @@ public class UNNotificationContent {
         self.summaryArgument = Java_content.summaryArgument
         self.summaryArgumentCount = Java_content.summaryArgumentCount
         self.filterCriteria = Java_content.filterCriteria
-        self.interruptionLevel = UNNotificationInterruptionLevel(rawValue: Java_content.bridgedInterruptionLevel) ?? .active
+        self.interruptionLevel = UNNotificationInterruptionLevel(rawValue: UInt(Java_content.bridgedInterruptionLevel)) ?? .active
     }
 
     var Java_content: SkipUI.UNNotificationContent {
         let content = SkipUI.UNNotificationContent.bridgedContent(title: title, subtitle: subtitle, body: body, badge: badge, sound: sound?.Java_sound, launchImageName: launchImageName, userInfo: userInfo, attachments: attachments.map(\.Java_attachment), categoryIdentifier: categoryIdentifier, threadIdentifier: threadIdentifier, targetContentIdentifier: targetContentIdentifier, summaryArgument: summaryArgument, summaryArgumentCount: summaryArgumentCount, filterCriteria: filterCriteria)
-        content.bridgedInterruptionLevel = interruptionLevel.rawValue
+        content.bridgedInterruptionLevel = Int(interruptionLevel.rawValue)
         return content
     }
 }
