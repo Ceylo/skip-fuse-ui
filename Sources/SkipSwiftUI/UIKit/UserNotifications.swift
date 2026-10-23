@@ -118,13 +118,13 @@ public final class UNUserNotificationCenter {
         SkipUI.UNUserNotificationCenter.current().removeAllDeliveredNotifications()
     }
 
-    @available(*, unavailable)
-    public func setNotificationCategories(_ categories: Set<AnyHashable /* UNNotificationCategory */>) {
+    public func setNotificationCategories(_ categories: Set<UNNotificationCategory>) {
+        SkipUI.UNUserNotificationCenter.current().setNotificationCategories(bridgedCategories: categories.map(\.Java_category))
     }
 
-    @available(*, unavailable)
-    public func getNotificationCategories() async -> Set<AnyHashable /* UNNotificationCategory */> {
-        fatalError()
+    public func getNotificationCategories() async -> Set<UNNotificationCategory> {
+        let categories = await SkipUI.UNUserNotificationCenter.current().bridgedNotificationCategories()
+        return Set(categories.map { UNNotificationCategory(Java_category: $0) })
     }
 }
 
@@ -224,6 +224,93 @@ public final class UNNotificationResponse {
     }
 }
 
+public struct UNNotificationActionOptions : OptionSet, Sendable {
+    public let rawValue: Int
+
+    public init(rawValue: Int) {
+        self.rawValue = rawValue
+    }
+
+    public static let authenticationRequired = UNNotificationActionOptions(rawValue: 1 << 0) // For bridging
+    public static let destructive = UNNotificationActionOptions(rawValue: 1 << 1) // For bridging
+    public static let foreground = UNNotificationActionOptions(rawValue: 1 << 2) // For bridging
+}
+
+public final class UNNotificationAction : @unchecked Sendable {
+    public let identifier: String
+    public let title: String
+    public let options: UNNotificationActionOptions
+
+    public init(identifier: String, title: String, options: UNNotificationActionOptions = []) {
+        self.identifier = identifier
+        self.title = title
+        self.options = options
+    }
+
+    init(Java_action: SkipUI.UNNotificationAction) {
+        self.identifier = Java_action.identifier
+        self.title = Java_action.title
+        self.options = UNNotificationActionOptions(rawValue: Java_action.bridgedOptions)
+    }
+
+    var Java_action: SkipUI.UNNotificationAction {
+        return SkipUI.UNNotificationAction(identifier: identifier, title: title, bridgedOptions: options.rawValue)
+    }
+}
+
+public struct UNNotificationCategoryOptions : OptionSet, Sendable {
+    public let rawValue: Int
+
+    public init(rawValue: Int) {
+        self.rawValue = rawValue
+    }
+
+    public static let customDismissAction = UNNotificationCategoryOptions(rawValue: 1 << 0) // For bridging
+    public static let allowInCarPlay = UNNotificationCategoryOptions(rawValue: 1 << 1) // For bridging
+    public static let hiddenPreviewsShowTitle = UNNotificationCategoryOptions(rawValue: 1 << 2) // For bridging
+    public static let hiddenPreviewsShowSubtitle = UNNotificationCategoryOptions(rawValue: 1 << 3) // For bridging
+}
+
+public final class UNNotificationCategory : Hashable, @unchecked Sendable {
+    public let identifier: String
+    public let actions: [UNNotificationAction]
+    public let intentIdentifiers: [String]
+    public let options: UNNotificationCategoryOptions
+
+    public init(identifier: String, actions: [UNNotificationAction], intentIdentifiers: [String], options: UNNotificationCategoryOptions = []) {
+        self.identifier = identifier
+        self.actions = actions
+        self.intentIdentifiers = intentIdentifiers
+        self.options = options
+    }
+
+    init(Java_category: SkipUI.UNNotificationCategory) {
+        self.identifier = Java_category.identifier
+        self.actions = Java_category.actions.map { UNNotificationAction(Java_action: $0) }
+        self.intentIdentifiers = []
+        self.options = UNNotificationCategoryOptions(rawValue: Java_category.bridgedOptions)
+    }
+
+    var Java_category: SkipUI.UNNotificationCategory {
+        return SkipUI.UNNotificationCategory(identifier: identifier, actions: actions.map(\.Java_action), intentIdentifiers: intentIdentifiers, bridgedOptions: options.rawValue)
+    }
+
+    public static func ==(lhs: UNNotificationCategory, rhs: UNNotificationCategory) -> Bool {
+        return lhs.identifier == rhs.identifier
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(identifier)
+    }
+}
+
+public enum UNNotificationInterruptionLevel : Int, Sendable {
+    case passive = 0
+    case active = 1
+    case timeSensitive = 2
+    case critical = 3
+}
+
 public struct UNNotificationPresentationOptions : OptionSet, Sendable {
     public let rawValue: Int
 
@@ -253,6 +340,7 @@ public class UNNotificationContent {
     public internal(set) var summaryArgument: String
     public internal(set) var summaryArgumentCount: Int
     public internal(set) var filterCriteria: String?
+    public internal(set) var interruptionLevel: UNNotificationInterruptionLevel = .active
 
     public init(title: String = "", subtitle: String = "", body: String = "", badge: Int? = nil, sound: UNNotificationSound? = UNNotificationSound.default, launchImageName: String = "", userInfo: [AnyHashable: Any] = [:], attachments: [UNNotificationAttachment] = [], categoryIdentifier: String = "", threadIdentifier: String = "", targetContentIdentifier: String? = nil, summaryArgument: String = "", summaryArgumentCount: Int = 0, filterCriteria: String? = nil) {
         self.title = title
@@ -286,10 +374,13 @@ public class UNNotificationContent {
         self.summaryArgument = Java_content.summaryArgument
         self.summaryArgumentCount = Java_content.summaryArgumentCount
         self.filterCriteria = Java_content.filterCriteria
+        self.interruptionLevel = UNNotificationInterruptionLevel(rawValue: Java_content.bridgedInterruptionLevel) ?? .active
     }
 
     var Java_content: SkipUI.UNNotificationContent {
-        return SkipUI.UNNotificationContent.bridgedContent(title: title, subtitle: subtitle, body: body, badge: badge, sound: sound?.Java_sound, launchImageName: launchImageName, userInfo: userInfo, attachments: attachments.map(\.Java_attachment), categoryIdentifier: categoryIdentifier, threadIdentifier: threadIdentifier, targetContentIdentifier: targetContentIdentifier, summaryArgument: summaryArgument, summaryArgumentCount: summaryArgumentCount, filterCriteria: filterCriteria)
+        let content = SkipUI.UNNotificationContent.bridgedContent(title: title, subtitle: subtitle, body: body, badge: badge, sound: sound?.Java_sound, launchImageName: launchImageName, userInfo: userInfo, attachments: attachments.map(\.Java_attachment), categoryIdentifier: categoryIdentifier, threadIdentifier: threadIdentifier, targetContentIdentifier: targetContentIdentifier, summaryArgument: summaryArgument, summaryArgumentCount: summaryArgumentCount, filterCriteria: filterCriteria)
+        content.bridgedInterruptionLevel = interruptionLevel.rawValue
+        return content
     }
 }
 
@@ -350,6 +441,10 @@ public final class UNMutableNotificationContent : UNNotificationContent {
         get { super.filterCriteria }
         set { super.filterCriteria = newValue }
     }
+    public override var interruptionLevel: UNNotificationInterruptionLevel {
+        get { super.interruptionLevel }
+        set { super.interruptionLevel = newValue }
+    }
 }
 
 public final class UNNotificationSound {
@@ -399,8 +494,6 @@ public let UNNotificationAttachmentOptionsTypeHintKey = "UNNotificationAttachmen
 public let UNNotificationAttachmentOptionsThumbnailHiddenKey = "UNNotificationAttachmentOptionsThumbnailHiddenKey"
 public let UNNotificationAttachmentOptionsThumbnailClippingRectKey = "UNNotificationAttachmentOptionsThumbnailClippingRectKey"
 public let UNNotificationAttachmentOptionsThumbnailTimeKey = "UNNotificationAttachmentOptionsThumbnailTimeKey"
-public let UNNotificationAttachmentOptionsRevealActionTitleKey = "UNNotificationAttachmentOptionsRevealActionTitleKey"
-public let UNNotificationAttachmentOptionsConcealActionTitleKey = "UNNotificationAttachmentOptionsConcealActionTitleKey"
 
 public class UNNotificationAttachment {
     public let identifier: String
@@ -408,8 +501,6 @@ public class UNNotificationAttachment {
     public let type: String
     public let timeShift: TimeInterval
     let hidesThumbnail: Bool
-    let revealActionTitle: String?
-    let concealActionTitle: String?
 
     public init(identifier: String, url: URL, type: String = "public.data", timeShift: TimeInterval = 0) {
         self.identifier = identifier
@@ -417,8 +508,6 @@ public class UNNotificationAttachment {
         self.type = type
         self.timeShift = timeShift
         self.hidesThumbnail = false
-        self.revealActionTitle = nil
-        self.concealActionTitle = nil
     }
 
     public init(identifier: String, url: URL, options: [AnyHashable: Any]? = nil) throws {
@@ -427,8 +516,6 @@ public class UNNotificationAttachment {
         self.type = SkipUI.UNNotificationAttachment.type(of: url, hint: options?[UNNotificationAttachmentOptionsTypeHintKey] as? String)
         self.timeShift = 0
         self.hidesThumbnail = options?[UNNotificationAttachmentOptionsThumbnailHiddenKey] as? Bool ?? false
-        self.revealActionTitle = options?[UNNotificationAttachmentOptionsRevealActionTitleKey] as? String
-        self.concealActionTitle = options?[UNNotificationAttachmentOptionsConcealActionTitleKey] as? String
     }
 
     public static func attachment(withIdentifier identifier: String, url: URL, options: [AnyHashable: Any]? = nil) throws -> UNNotificationAttachment {
@@ -441,12 +528,10 @@ public class UNNotificationAttachment {
         self.type = Java_attachment.type
         self.timeShift = Java_attachment.timeShift
         self.hidesThumbnail = Java_attachment.hidesThumbnail
-        self.revealActionTitle = Java_attachment.revealActionTitle
-        self.concealActionTitle = Java_attachment.concealActionTitle
     }
 
     var Java_attachment: SkipUI.UNNotificationAttachment {
-        return SkipUI.UNNotificationAttachment(identifier: identifier, url: url, type: type, timeShift: timeShift, hidesThumbnail: hidesThumbnail, revealActionTitle: revealActionTitle, concealActionTitle: concealActionTitle)
+        return SkipUI.UNNotificationAttachment(identifier: identifier, url: url, type: type, timeShift: timeShift, hidesThumbnail: hidesThumbnail)
     }
 }
 
