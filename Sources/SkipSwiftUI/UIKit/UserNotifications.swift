@@ -399,6 +399,8 @@ public let UNNotificationAttachmentOptionsTypeHintKey = "UNNotificationAttachmen
 public let UNNotificationAttachmentOptionsThumbnailHiddenKey = "UNNotificationAttachmentOptionsThumbnailHiddenKey"
 public let UNNotificationAttachmentOptionsThumbnailClippingRectKey = "UNNotificationAttachmentOptionsThumbnailClippingRectKey"
 public let UNNotificationAttachmentOptionsThumbnailTimeKey = "UNNotificationAttachmentOptionsThumbnailTimeKey"
+public let UNNotificationAttachmentOptionsRevealActionTitleKey = "UNNotificationAttachmentOptionsRevealActionTitleKey"
+public let UNNotificationAttachmentOptionsConcealActionTitleKey = "UNNotificationAttachmentOptionsConcealActionTitleKey"
 
 public class UNNotificationAttachment {
     public let identifier: String
@@ -406,6 +408,8 @@ public class UNNotificationAttachment {
     public let type: String
     public let timeShift: TimeInterval
     let hidesThumbnail: Bool
+    let revealActionTitle: String?
+    let concealActionTitle: String?
 
     public init(identifier: String, url: URL, type: String = "public.data", timeShift: TimeInterval = 0) {
         self.identifier = identifier
@@ -413,6 +417,8 @@ public class UNNotificationAttachment {
         self.type = type
         self.timeShift = timeShift
         self.hidesThumbnail = false
+        self.revealActionTitle = nil
+        self.concealActionTitle = nil
     }
 
     public init(identifier: String, url: URL, options: [AnyHashable: Any]? = nil) throws {
@@ -421,6 +427,8 @@ public class UNNotificationAttachment {
         self.type = SkipUI.UNNotificationAttachment.type(of: url, hint: options?[UNNotificationAttachmentOptionsTypeHintKey] as? String)
         self.timeShift = 0
         self.hidesThumbnail = options?[UNNotificationAttachmentOptionsThumbnailHiddenKey] as? Bool ?? false
+        self.revealActionTitle = options?[UNNotificationAttachmentOptionsRevealActionTitleKey] as? String
+        self.concealActionTitle = options?[UNNotificationAttachmentOptionsConcealActionTitleKey] as? String
     }
 
     public static func attachment(withIdentifier identifier: String, url: URL, options: [AnyHashable: Any]? = nil) throws -> UNNotificationAttachment {
@@ -433,10 +441,12 @@ public class UNNotificationAttachment {
         self.type = Java_attachment.type
         self.timeShift = Java_attachment.timeShift
         self.hidesThumbnail = Java_attachment.hidesThumbnail
+        self.revealActionTitle = Java_attachment.revealActionTitle
+        self.concealActionTitle = Java_attachment.concealActionTitle
     }
 
     var Java_attachment: SkipUI.UNNotificationAttachment {
-        return SkipUI.UNNotificationAttachment(identifier: identifier, url: url, type: type, timeShift: timeShift, hidesThumbnail: hidesThumbnail)
+        return SkipUI.UNNotificationAttachment(identifier: identifier, url: url, type: type, timeShift: timeShift, hidesThumbnail: hidesThumbnail, revealActionTitle: revealActionTitle, concealActionTitle: concealActionTitle)
     }
 }
 
