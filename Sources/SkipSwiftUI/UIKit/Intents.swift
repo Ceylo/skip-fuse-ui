@@ -169,8 +169,6 @@ public class INInteraction {
         guard let intent = intent as? INSendMessageIntent else {
             return
         }
-        let interaction = SkipUI.INInteraction(intent: intent.Java_intent)
-        interaction.bridgedDirection = direction.rawValue
-        try await interaction.donate()
+        try await SkipUI.INInteraction(intent: intent.Java_intent).donate()
     }
 }
