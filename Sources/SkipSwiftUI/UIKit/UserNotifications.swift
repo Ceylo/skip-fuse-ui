@@ -375,13 +375,40 @@ public class UNNotificationContent {
         self.summaryArgumentCount = Java_content.summaryArgumentCount
         self.filterCriteria = Java_content.filterCriteria
         self.interruptionLevel = UNNotificationInterruptionLevel(rawValue: UInt(Java_content.bridgedInterruptionLevel)) ?? .active
+        self.messageIntent = Java_content.bridgedMessageIntent.map { INSendMessageIntent(Java_intent: $0) }
     }
 
     var Java_content: SkipUI.UNNotificationContent {
         let content = SkipUI.UNNotificationContent.bridgedContent(title: title, subtitle: subtitle, body: body, badge: badge, sound: sound?.Java_sound, launchImageName: launchImageName, userInfo: userInfo, attachments: attachments.map(\.Java_attachment), categoryIdentifier: categoryIdentifier, threadIdentifier: threadIdentifier, targetContentIdentifier: targetContentIdentifier, summaryArgument: summaryArgument, summaryArgumentCount: summaryArgumentCount, filterCriteria: filterCriteria)
         content.bridgedInterruptionLevel = Int(interruptionLevel.rawValue)
+        content.bridgedMessageIntent = messageIntent?.Java_intent
         return content
     }
+
+    /// The intent `updating(from:)` read, whose sender makes the notification a conversation.
+    var messageIntent: INSendMessageIntent?
+
+    public func mutableCopy() -> Any {
+        let copy = UNMutableNotificationContent(title: title, subtitle: subtitle, body: body, badge: badge, sound: sound, launchImageName: launchImageName, userInfo: userInfo, attachments: attachments, categoryIdentifier: categoryIdentifier, threadIdentifier: threadIdentifier, targetContentIdentifier: targetContentIdentifier, summaryArgument: summaryArgument, summaryArgumentCount: summaryArgumentCount, filterCriteria: filterCriteria)
+        copy.interruptionLevel = interruptionLevel
+        copy.messageIntent = messageIntent
+        return copy
+    }
+
+    /// A copy shown as a message from the intent's sender, as iOS shows a communication notification.
+    public func updating(from provider: UNNotificationContentProviding) throws -> UNNotificationContent {
+        let copy = mutableCopy() as! UNMutableNotificationContent
+        if let intent = provider as? INSendMessageIntent {
+            copy.messageIntent = intent
+            if let sender = intent.sender {
+                copy.title = sender.displayName
+            }
+        }
+        return copy
+    }
+}
+
+public protocol UNNotificationContentProviding {
 }
 
 public final class UNMutableNotificationContent : UNNotificationContent {
