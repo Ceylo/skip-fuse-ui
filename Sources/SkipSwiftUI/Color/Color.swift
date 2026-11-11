@@ -1,5 +1,4 @@
 // Copyright 2025–2026 Skip
-// SPDX-License-Identifier: MPL-2.0
 import Foundation
 import SkipUI
 
@@ -339,12 +338,6 @@ extension ShapeStyle where Self == Color {
     public static var gray: Color { Color.gray }
     public static var black: Color { Color.black }
     public static var clear: Color { Color.clear }
-}
-
-extension Color : RichTextColorStyle {
-    var richTextColorToken: String? {
-        return RichTextEncoding.token(for: spec)
-    }
 }
 
 /// A Material 3 `ColorScheme` role, named as its property.

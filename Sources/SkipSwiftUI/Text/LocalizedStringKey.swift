@@ -1,5 +1,4 @@
 // Copyright 2025–2026 Skip
-// SPDX-License-Identifier: MPL-2.0
 import Foundation
 import SkipFuse
 
@@ -48,12 +47,7 @@ import SkipFuse
 
 extension LocalizedStringKey.StringInterpolation {
     public mutating func appendInterpolation(_ text: Text) {
-        if let segments = text.spec.segments {
-            // Without this an interpolated concatenation contributes nothing at all.
-            for segment in segments {
-                appendInterpolation(segment.text)
-            }
-        } else if let verbatim = text.spec.verbatim {
+        if let verbatim = text.spec.verbatim {
             appendInterpolation(verbatim)
         } else if let key = text.spec.key {
             let interpolation = key.interpolation

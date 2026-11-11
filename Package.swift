@@ -53,6 +53,8 @@ let package = Package(
         // Apple SwiftUI reference rendering for the animation-lifetime experiment.
         // No Skip plugin: AppKit pixel sampling must never be transpiled.
         .testTarget(name: "AnimationLifetimeReferenceTests", dependencies: ["SkipSwiftUISamples"]),
+        // Native compile/runtime coverage for the public UI facades with Foundation.
+        .testTarget(name: "MixedImportTests", dependencies: ["SkipFuseUI", "SkipSwiftUI"] + (android ? ["SwiftUI"] : [])),
     ]
 )
 
