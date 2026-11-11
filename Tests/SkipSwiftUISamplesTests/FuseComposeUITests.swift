@@ -183,7 +183,7 @@ final class FuseComposeUITests: XCTestCase {
         #endif
     }
 
-    // Uncomment once a skipstone release bridges private state (skiptools/skipstone#316).
+    // Uncomment once a skip release bridges private state (skiptools/skip#757).
     //func testPrivateCounterIncrements() throws {
     //    #if !SKIP
     //    throw XCTSkip("Compose UI testing is Android-only")

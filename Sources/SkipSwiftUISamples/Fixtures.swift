@@ -144,7 +144,7 @@ struct SamplePrimitiveButtonStyle: PrimitiveButtonStyle {
     }
 }
 
-// Uncomment once a skipstone release bridges private state (skiptools/skipstone#316).
+// Uncomment once a skip release bridges private state (skiptools/skip#757).
 //public struct PrivateCounterTestFixture: View {
 //    @State private var count = 0
 //    @Environment(\.layoutDirection) private var layoutDirection
